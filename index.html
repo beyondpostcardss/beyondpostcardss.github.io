@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Secret Owl Post</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Uncial+Antiqua&family=Cinzel:wght@400..900&display=swap" rel="stylesheet">
+<style>
+/* === Fullscreen modal starfield (paste into <style>) === */
+.modalOverlay{ z-index: 0; }       /* ensure proper stacking */
+.modal{ position: relative; z-index: 2; }
+
+.modalStars{
+  position: fixed; inset: 0; pointer-events: none;
+  z-index: 1; mix-blend-mode: screen;
+}
+.mstar{
+  position: absolute; width: 2px; height: 2px; border-radius: 50%;
+  background: #fff;
+  box-shadow:
+    0 0 10px #fff8,
+    0 0 22px #ffeaa966,
+    0 0 40px #ffeaa933;
+  transform: translate3d(var(--x), var(--y), 0) scale(var(--s,1));
+  opacity: var(--o, .85);
+  animation: mTwinkle var(--t, 8s) ease-in-out var(--d, 0s) infinite alternate;
+}
+@keyframes mTwinkle{
+  0%   { filter: brightness(.9);  opacity: calc(var(--o,.85) * .6); }
+  100% { filter: brightness(1.8); opacity: calc(var(--o,.85) * 1); }
+}
+@media (prefers-reduced-motion: reduce){ .mstar{ animation: none; } }
+
+
+/* === Glow the center message box on hover/focus (paste into <style>) === */
+.panel{
+  position: relative;
+  overflow: hidden; /* contain the glow */
+  transition: box-shadow .25s ease, border-color .25s ease, transform .25s ease;
+}
+.panel::after{
+  content: "";
+  position: absolute; inset: -20%;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .25s ease;
+  /* dynamic hotspot follows cursor (from JS), falls back to center */
+  background:
+    radial-gradient(220px 220px at var(--mx,50%) var(--my,50%),
+      rgba(255,241,178,.35),
+      rgba(255,241,178,.18) 40%,
+      rgba(255,241,178,0) 65%);
+  mix-blend-mode: screen;
+  filter: blur(2px);
+}
+.panel:hover,
+.panel:focus-within{
+  border-color: #e6d27fcc;
+  box-shadow:
+    0 14px 46px rgba(198,176,90,.45),
+    0 0 0 1px rgba(230,210,127,.55) inset,
+    0 0 60px rgba(198,176,90,.22) inset;
+  transform: translateY(-1px);
+}
+.panel:hover::after,
+.panel:focus-within::after{
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce){
+  .panel{ transition: box-shadow .25s ease, border-color .25s ease; }
+  .panel:hover{ transform: none; }
+}
+
+@font-face {
+  font-family: 'HarryP';
+  src: url('assets/HARRYP__.TTF') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root { --hogwarts: url('hogwarts.jpg'); --logo: url('logo.png'); }
+* { box-sizing: border-box; }
+html, body { height: 100%; background: #0a0b11; color: #f7f2d7; cursor: none; }
+body { margin: 0; overflow: hidden; font-family: 'Cinzel', serif; }
+.bg {
+ position: fixed; inset: 0;
+ background:
+   radial-gradient(1200px 800px at 50% 120%, rgba(50,35,15,.4), transparent 60%),
+   linear-gradient(180deg, rgba(8,10,20,.9), rgba(8,10,20,.5)),
+   var(--hogwarts) center/cover no-repeat fixed;
+}
+.logoText { position: fixed; inset: 0; display:flex; align-items:center; justify-content:center; pointer-events:none; }
+.logoText h1{ font-family:'HarryP','Uncial Antiqua',serif; font-size: clamp(6rem, 16vw, 20rem); letter-spacing:.02em; color: transparent; -webkit-text-stroke: 2px #e5d37a; text-shadow: 0 0 30px #e5d37a66, 0 0 60px #e5d37a33; opacity:.15; animation: float 12s ease-in-out infinite; }
+@keyframes float { 0%,100%{ transform: translateY(-1%) rotate(-1deg);} 50%{ transform: translateY(1%) rotate(1deg);} }
+.logoSigil{ position: fixed; inset:0; background: var(--logo) center/40% no-repeat; opacity:.08; filter: drop-shadow(0 0 30px #c6b05a66); pointer-events:none; animation: pulse 6s ease-in-out infinite; }
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.02)}}
+
+.starry{position: fixed; inset:0; pointer-events:none; background:
+ radial-gradient(2px 2px at 20% 30%, #fff8, transparent 60%),
+ radial-gradient(1.5px 1.5px at 70% 40%, #fff6, transparent 60%),
+ radial-gradient(1px 1px at 40% 80%, #fff5, transparent 60%),
+ radial-gradient(2px 2px at 80% 70%, #fff7, transparent 60%); animation: twinkle 7s linear infinite;}
+@keyframes twinkle { 50% { filter: brightness(1.4)}}
+
+.main{ position: relative; z-index: 2; min-height:100dvh; display:grid; place-items:center; text-align:center; padding: 4rem 1rem;}
+.panel{ backdrop-filter: blur(6px); background: linear-gradient(180deg, rgba(12,10,6,.75), rgba(12,10,6,.55)); border:1px solid #c2b46d55; border-radius: 18px; padding: 2rem; max-width: 720px; width: min(90vw, 760px); box-shadow: 0 10px 50px rgba(198,176,90,.15), inset 0 0 60px rgba(198,176,90,.08);}
+h2{ font-family:'HarryP','Uncial Antiqua',serif; margin:0 0 .75rem; font-size: clamp(1.5rem, 3.6vw, 2.8rem); text-shadow: 0 2px 20px #c6b05a55;}
+.preamble{ opacity:.9; margin: 0 0 1.25rem; }
+.inputRow{ display:flex; gap:.6rem; justify-content:center; align-items:center; flex-wrap: wrap; margin-top:1rem;}
+input[type="password"], input[type="text"]{ font: 600 1.1rem/1.2 'Cinzel', serif; padding: .9rem 1rem; border-radius: 12px; border:1px solid #c2b46d77; background: rgba(10,8,4,.55); color:#f8f3db; outline: none; min-width: 280px; letter-spacing: .05em; box-shadow: inset 0 0 18px rgba(198,176,90,.12); }
+input::placeholder{ color:#f8f3db99}
+button{ font: 700 1rem 'Cinzel', serif; padding:.85rem 1.2rem; border-radius: 12px; border:1px solid #e6d27fbb; color:#201b08; background: linear-gradient(180deg,#e9d98a,#c6b05a); cursor: pointer; box-shadow: 0 8px 20px rgba(198,176,90,.35); transition: transform .08s ease, box-shadow .2s ease; }
+button:hover{ transform: translateY(-1px); box-shadow: 0 12px 24px rgba(198,176,90,.45); }
+.small{ font-size:.9rem; opacity:.8;}
+
+#wand{ position: fixed; transform-origin: 100% 50%; width: 220px; height: 28px; pointer-events:none; z-index: 5; filter: drop-shadow(0 0 10px #ffd); }
+#wand svg{ width:100%; height:100%;}
+#wand .tipGlow{ filter: blur(1px); }
+#light{ position: fixed; inset:0; pointer-events:none; z-index: 3; background: radial-gradient(130px 130px at var(--lx, 50%) var(--ly, 50%), rgba(255,250,210,.65), rgba(255,250,210,.22) 45%, rgba(255,250,210,0) 60%); mix-blend-mode: screen; transition: background-position .02s linear;}
+#trail{ position: fixed; inset:0; pointer-events:none; z-index: 4; mix-blend-mode: screen;}
+.spark{ position: fixed; width:6px; height:6px; border-radius:50%; background: #fff; box-shadow: 0 0 12px #fff8, 0 0 30px #ffd76a99, 0 0 60px #ffd76a55; animation: rise .9s ease-out forwards;}
+@keyframes rise{ from { transform: translate(0,0) scale(1); opacity: 1;} to{ transform: translate(var(--dx), var(--dy)) scale(.6); opacity: 0;} }
+
+.modalWrap{ position: fixed; inset:0; display:none; place-items:center; z-index: 9;}
+.modalWrap.open{ display:grid;}
+.modalOverlay{ position:absolute; inset:0; background: radial-gradient(circle at 50% 50%, rgba(12,10,6,.6), rgba(5,4,2,.92)); backdrop-filter: blur(4px); animation: mist 600ms ease both;}
+@keyframes mist{ from { opacity:0} to {opacity:1}}
+.modal{ position: relative; width: min(90vw, 700px); padding: 2rem 2rem 2.4rem; border-radius: 24px; border:1px solid #e6d27f88; background: radial-gradient(120% 160% at 50% -20%, #f5eab7, #f0dda0 40%, #c6b05a 100%); box-shadow: 0 30px 120px rgba(198,176,90,.55); transform-origin: 50% 120%; animation: pop 700ms cubic-bezier(.2,1.2,.2,1) both; }
+@keyframes pop{ 0%{ transform: rotateX(-30deg) translateY(30px) scale(.8); opacity: 0 } 100%{ transform: rotateX(0deg) translateY(0) scale(1); opacity: 1}}
+/* NEW: magical aura when the modal opens */
+.modal.revealSpell::before,
+.modal.revealSpell::after{
+  content:"";
+  position:absolute;
+  left:50%; top:50%;
+  width:42vmin; height:42vmin;
+  transform: translate(-50%,-50%) scale(.7);
+  border-radius:50%;
+  pointer-events:none;
+  mix-blend-mode:screen;
+  opacity:0;
+  animation: halo 900ms ease-out forwards;
+}
+.modal.revealSpell::before{
+  background: radial-gradient(closest-side, rgba(255,244,191,.65), rgba(255,244,191,0) 60%);
+  filter: blur(8px);
+}
+.modal.revealSpell::after{
+  width:54vmin; height:54vmin;
+  background: conic-gradient(from 0deg,
+    rgba(198,176,90,0) 0 18%,
+    rgba(255,237,154,.55) 19% 25%,
+    transparent 26% 48%,
+    rgba(255,237,154,.55) 49% 55%,
+    transparent 56% 78%,
+    rgba(255,237,154,.45) 79% 85%,
+    transparent 86% 100%);
+  filter: blur(3px);
+}
+@keyframes halo{
+  0%   { opacity:0; transform: translate(-50%,-50%) scale(.7) rotate(-10deg); }
+  40%  { opacity:1; }
+  100% { opacity:0; transform: translate(-50%,-50%) scale(1.25) rotate(10deg); }
+}
+
+.modal h3{ font-family:'HarryP','Uncial Antiqua',serif; font-size: clamp(1.75rem, 3.8vw, 3rem); margin:0 0 .5rem; color:#3a2f10; text-shadow: 0 1px 0 #fff8;}
+.modal p{ margin:.5rem 0 0; color:#3a2f10; font-weight:600;}
+.closeBtn{ position:absolute; top:.75rem; right:.75rem; width:42px; height:42px; border-radius:50%; background: #0000; border:1px solid #3a2f10; color:#3a2f10; font-weight:900; cursor:pointer}
+.runes{ position:absolute; inset:-6px; border-radius: inherit; pointer-events:none; background:
+ radial-gradient(2px 2px at 20% 30%, #3a2f10, transparent 60%),
+ radial-gradient(2px 2px at 80% 70%, #3a2f10, transparent 60%); opacity:.18; mix-blend-mode: multiply; filter: contrast(1.2) brightness(1.05); }
+.sigils{ position:absolute; inset:-24px; pointer-events:none; filter: drop-shadow(0 0 20px #ffed9a88); }
+.sigils::before, .sigils::after{ content:""; position:absolute; left:50%; top:0; width:160px; height:160px; border:2px solid #e6d27f; border-radius:50%; transform: translateX(-50%); animation: spin 7s linear infinite;}
+.sigils::after{ width:220px; height:220px; border-style:dashed; animation-duration: 11s;}
+@keyframes spin{ to { transform: translateX(-50%) rotate(360deg)}}
+
+.footerNote{ position: fixed; bottom: 14px; width: 100%; text-align: center; font-size:.85rem; opacity:.75; z-index: 2;}
+
+.hint{ margin-top:.75rem; font-size:.95rem; opacity:.85;}
+kbd{ background:#0004; border:1px solid #c2b46d66; border-bottom-width:2px; padding:.18rem .4rem; border-radius:6px; box-shadow: inset 0 0 6px rgba(198,176,90,.25); }
+.note{ font-size:.8rem; opacity:.7; margin-top: .5rem;}
+/* Banner headline */
+.banner{ position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 6; padding: .6rem 1rem; border-radius: 14px; backdrop-filter: blur(6px); background: linear-gradient(180deg, rgba(12,10,6,.55), rgba(12,10,6,.25)); border:1px solid #c2b46d55; text-align:center; font-family:'HarryP','Cinzel',serif; font-size: clamp(1.1rem, 2.4vw, 1.6rem); letter-spacing:.03em; color:#f7f2d7; text-shadow: 0 0 12px #ffd76a55, 0 0 24px #ffd76a22; box-shadow: 0 8px 30px rgba(198,176,90,.18);}
+
+/* Moving star layers */
+.stars{ position: fixed; inset: 0; pointer-events:none; background-repeat: no-repeat; mix-blend-mode: screen;}
+.stars::before, .stars::after{ content:""; position:absolute; inset:-20%; background:
+  radial-gradient(2px 2px at 10% 20%, #fff8, transparent 60%),
+  radial-gradient(1.5px 1.5px at 30% 70%, #fff6, transparent 60%),
+  radial-gradient(1px 1px at 60% 40%, #fff6, transparent 60%),
+  radial-gradient(2px 2px at 80% 60%, #fff7, transparent 60%),
+  radial-gradient(1.5px 1.5px at 50% 15%, #fff7, transparent 60%),
+  radial-gradient(2px 2px at 15% 80%, #fff8, transparent 60%);
+  animation: drift 120s linear infinite, twinkle 8s ease-in-out infinite;
+}
+.stars--near::before{ animation-duration: 70s; opacity:.9; }
+.stars--near::after{ animation-duration: 110s; opacity:.6; }
+.stars--far::before{ animation-duration: 160s; opacity:.5; }
+.stars--far::after{ animation-duration: 220s; opacity:.35; }
+@keyframes drift{ from{ transform: translate3d(0,0,0) rotate(0deg) } to{ transform: translate3d(-12%, -8%, 0) rotate(0.01turn) }}
+</style>
+</head>
+<body>
+  <!-- Background layers -->
+  <div class="bg" aria-hidden="true"></div>
+  <div class="logoSigil" aria-hidden="true"></div>
+  <div class="logoText" aria-hidden="true">
+    <h1>Harry&nbsp;Potter</h1>
+  </div>
+  <div class="starry" aria-hidden="true"></div>
+  <div class="stars stars--far" aria-hidden="true"></div>
+  <div class="stars stars--near" aria-hidden="true"></div>
+
+  <!-- Spotlight & particles -->
+  <div id="light" aria-hidden="true"></div>
+  <div id="trail" aria-hidden="true"></div>
+
+  <!-- Wand cursor -->
+  <div id="wand" aria-hidden="true">
+    <svg viewBox="0 0 240 30" xmlns="http://www.w3.org/2000/svg">
+      <!-- handle -->
+      <rect x="0" y="9" width="70" height="12" rx="6" fill="#4b2f16"/>
+      <rect x="60" y="12" width="8" height="6" rx="3" fill="#6a3e1b"/>
+      <!-- shaft -->
+      <rect x="68" y="13" width="150" height="4" rx="2" fill="#a67c3d"/>
+      <!-- tip -->
+      <circle id="wandTip" cx="228" cy="15" r="4" fill="#fff7cc"/>
+      <g class="tipGlow">
+        <circle cx="228" cy="15" r="9" fill="#fff8" />
+        <circle cx="228" cy="15" r="16" fill="#ffd76a55" />
+        <circle cx="228" cy="15" r="26" fill="#ffd76a22" />
+      </g>
+    </svg>
+  </div>
+
+  <!-- Main UI -->
+  <div class="banner">I solemnly swear this is going to be a magical, celestial birthday.</div>
+  <main class="main">
+    <section class="panel">
+      <h2>Enter the spell to reveal the hidden message</h2>
+      <p class="preamble">Only a true witch or wizard knows the incantation. Whisper it… or type it.</p>
+      <div class="inputRow">
+        <input id="spell" type="text" placeholder="Type the spell…" aria-label="Spell incantation">
+        <button id="cast">Cast ✨</button>
+      </div>
+      <div class="hint"><span class="small">Hint: it's the revealing charm. Unscramble <kbd>R</kbd><kbd>C</kbd><kbd>A</kbd><kbd>M</kbd><kbd>P</kbd><kbd>I</kbd><kbd>U</kbd><kbd>A</kbd><kbd>E</kbd>.</span></div>
+    </section>
+  </main>
+
+  <div class="footerNote">Press <kbd>Enter</kbd> to cast. Move your wand to light the way.</div>
+
+  <!-- Modal -->
+  <div class="modalWrap" id="modal">
+    <div class="modalOverlay"></div>
+    <div class="modal">
+      <button class="closeBtn" id="close" aria-label="Close">×</button>
+      <!-- <div class="sigils" aria-hidden="true"></div> -->
+      <div class="runes" aria-hidden="true"></div>
+      <h3>Mischief Managed!</h3>
+      <p id="revealText"  style="white-space: pre-wrap;">
+My favorite witch,
+
+If I could send this by owl, I would - but consider this webpage my own little bit of magic. Until I can cross the space between us with actual footsteps, let this letter stand in as my hand in yours.
+
+I’ve been practicing a spell that reveals what ordinary eyes might miss, because some feelings deserve more than common ink. I hid this message because I wanted the reveal to feel like the moment a blank page gives up its secret. Aparecium isn’t just a charm - it’s how loving you feels: something invisible turning visible, ordinary turning wondrous, miles turning manageable. 
+
+So here is what the spell uncovers:
+I love you. I love you in the quiet minutes before sleep and in the loud ones with coffee and chaos. I love you in time zones and timelines, in the long wait and the long exhale when I finally see you. I choose you, now and then and next.
+
+Happy almost-birthday, my love. When you’re ready, say the word again – Aparecium - and remember: the secret was never the ink. It was us. Always!
+
+All my love (and a pocketful of starlight),
+Pushhhuuuuuuu
+</p>
+    </div>
+  </div>
+
+<script>
+(() => {
+  // ======= CONFIG (replace with your assets) =======
+  // Use your own images here (must have the rights to use them).
+  // Example placeholders below:
+  const hogwartsURL = "assets/il_1588xN.7060283775_1x68.webp"; // Replace with your Hogwarts-like image
+  const logoURL = "data:image/svg+xml;utf8,<?xml version='1.0' encoding='UTF-8'?><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 200'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23fceea6'/><stop offset='1' stop-color='%23c6b05a'/></linearGradient></defs><text x='50%' y='60%' text-anchor='middle' font-family='Uncial Antiqua, Cinzel, serif' font-size='140' fill='url(%23g)' stroke='%23c6b05a' stroke-width='4'>Harry Potter</text></svg>";
+  document.documentElement.style.setProperty('--hogwarts', `url('${hogwartsURL}')`);
+  document.documentElement.style.setProperty('--logo', `url('${logoURL}')`);
+
+  // ======= Wand cursor & light =======
+  const wand = document.getElementById('wand');
+  const light = document.getElementById('light');
+  const trail = document.getElementById('trail');
+
+  let lastX = window.innerWidth/2, lastY = window.innerHeight/2;
+
+  const moveWand = (e) => {
+    const x = e.clientX, y = e.clientY;
+
+    // Angle of motion
+    const dx = x - lastX, dy = y - lastY;
+    const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+
+    // Wand has width 240, height 30, tip at right center (transform-origin 100% 50%).
+    // Position so that the tip sits at the cursor.
+    wand.style.left = (x) + 'px';
+    wand.style.top  = (y) + 'px';
+    wand.style.transform = `translate(-100%, -50%) rotate(${angle}deg)`;
+
+    // Brighten spot - drive CSS vars
+    light.style.setProperty('--lx', x + 'px');
+    light.style.setProperty('--ly', y + 'px');
+
+    // Sparkles
+    spawnSparkles(x, y, dx, dy);
+
+    lastX = x; lastY = y;
+  };
+
+  // Create sparkles
+  let sparkPool = [];
+  function spawnSparkles(x, y, dx, dy) {
+    const speed = Math.hypot(dx, dy);
+    const count = Math.min(5, Math.max(1, Math.floor(speed/12)));
+    for (let i=0; i<count; i++) {
+      const s = document.createElement('div');
+      s.className = 'spark';
+      const a = Math.random() * Math.PI * 2;
+      const dist = 20 + Math.random()*60;
+      s.style.left = (x - 3 + (Math.random()*6-3)) + 'px';
+      s.style.top  = (y - 3 + (Math.random()*6-3)) + 'px';
+      s.style.setProperty('--dx', (Math.cos(a)*dist) + 'px');
+      s.style.setProperty('--dy', (Math.sin(a)*dist - 40) + 'px');
+      trail.appendChild(s);
+      sparkPool.push(s);
+      // cleanup
+      setTimeout(() => {
+        s.remove();
+        sparkPool = sparkPool.filter(el => el !== s);
+      }, 900);
+    }
+  }
+
+  window.addEventListener('mousemove', moveWand);
+  window.addEventListener('touchmove', (e) => {
+    const t = e.touches[0];
+    if (!t) return;
+    moveWand({clientX: t.clientX, clientY: t.clientY});
+    e.preventDefault();
+  }, {passive:false});
+
+  // ======= Spell logic =======
+  const PASSCODE = "aparecium"; // case-insensitive
+  const input = document.getElementById('spell');
+  const cast = document.getElementById('cast');
+  const modal = document.getElementById('modal');
+  const closeBtn = document.getElementById('close');
+
+  function castSpell() {
+    const val = (input.value || "").trim().toLowerCase();
+    if (val === PASSCODE) {
+      openModal();
+      swirlBurst();
+    } else {
+      // shake + red glow for incorrect incantation
+      input.animate([
+        { transform: 'translateX(0)' },
+        { transform: 'translateX(-7px)' },
+        { transform: 'translateX(7px)' },
+        { transform: 'translateX(0)' }
+      ], { duration: 250, iterations: 2 });
+      input.style.boxShadow = '0 0 18px rgba(220,40,40,.45), inset 0 0 18px rgba(198,176,90,.12)';
+      setTimeout(() => input.style.boxShadow = 'inset 0 0 18px rgba(198,176,90,.12)', 600);
+    }
+  }
+// === Make the glow follow the cursor inside the message box (paste inside your IIFE) ===
+const panel = document.querySelector('.panel');
+if (panel){
+  const updateGlow = (e) => {
+    const r = panel.getBoundingClientRect();
+    const x = e.clientX - r.left;
+    const y = e.clientY - r.top;
+    panel.style.setProperty('--mx', x + 'px');
+    panel.style.setProperty('--my', y + 'px');
+  };
+  panel.addEventListener('mousemove', updateGlow);
+  panel.addEventListener('mouseenter', updateGlow);
+  panel.addEventListener('mouseleave', () => {
+    // gracefully recenter when leaving
+    panel.style.removeProperty('--mx');
+    panel.style.removeProperty('--my');
+  });
+}
+
+// === Modal starfield (paste inside your IIFE, after openModal/closeModal are defined) ===
+let modalStarsLayer = null;
+let modalStarsTimer = null;
+
+function startModalStars(){
+  if (modalStarsLayer) return;
+  const wrap = document.getElementById('modal');
+  if (!wrap) return;
+
+  modalStarsLayer = document.createElement('div');
+  modalStarsLayer.className = 'modalStars';
+  wrap.appendChild(modalStarsLayer);
+
+  const build = () => {
+    modalStarsLayer.innerHTML = '';
+    const COUNT = 320;
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    for (let i = 0; i < COUNT; i++){
+      const s = document.createElement('div');
+      s.className = 'mstar';
+      const x = Math.random() * W;
+      const y = Math.random() * H;
+      const size = Math.random() < 0.14 ? 1.6 : 1.0;
+      const dur = 6 + Math.random() * 6;     // 6–12s
+      const delay = Math.random() * 10;       // desync
+      const base = 0.55 + Math.random() * 0.45;
+
+      s.style.setProperty('--x', x + 'px');
+      s.style.setProperty('--y', y + 'px');
+      s.style.setProperty('--s', size);
+      s.style.setProperty('--t', dur + 's');
+      s.style.setProperty('--d', delay + 's');
+      s.style.setProperty('--o', base.toFixed(2));
+      modalStarsLayer.appendChild(s);
+    }
+  };
+
+  build();
+  window.addEventListener('resize', build);
+
+  // keep twinkle organic forever
+  modalStarsTimer = setInterval(() => {
+    const stars = modalStarsLayer.querySelectorAll('.mstar');
+    for (let i = 0; i < 12; i++){
+      const s = stars[(Math.random() * stars.length) | 0];
+      if (!s) continue;
+      s.style.setProperty('--t', (5.5 + Math.random() * 7).toFixed(2) + 's');
+      s.style.setProperty('--d', (Math.random() * 10).toFixed(2) + 's');
+      s.style.setProperty('--o', (0.5 + Math.random() * 0.5).toFixed(2));
+    }
+  }, 4200);
+}
+
+function stopModalStars(){
+  if (modalStarsTimer) { clearInterval(modalStarsTimer); modalStarsTimer = null; }
+  if (modalStarsLayer){
+    modalStarsLayer.remove();
+    modalStarsLayer = null;
+  }
+}
+
+// Patch your existing open/close to toggle the starfield
+const _openModal = openModal;
+openModal = function(){
+  _openModal();
+  startModalStars();
+};
+const _closeModal = closeModal;
+closeModal = function(){
+  _closeModal();
+  stopModalStars();
+};
+
+
+function openModal() {
+  modal.classList.add('open');
+
+  // NEW: keep the wand cursor visible above the popup
+  wand.style.zIndex = '10000';
+
+  // NEW: trigger the aura animation on the card
+  const card = modal.querySelector('.modal');
+  card.classList.remove('revealSpell'); // reset so it can replay
+  void card.offsetWidth;                // force reflow to restart animation
+  card.classList.add('revealSpell');
+}
+
+function closeModal() {
+  modal.classList.remove('open');
+
+  // NEW: return wand to its normal stacking order
+  wand.style.zIndex = '5';
+}
+
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      castSpell();
+    }
+  });
+  cast.addEventListener('click', castSpell);
+  closeBtn.addEventListener('click', closeModal);
+  modal.addEventListener('click', (e) => { if (e.target.classList.contains('modalOverlay')) closeModal(); });
+
+  // ======= Entrance effects =======
+  document.addEventListener('visibilitychange', ()=>{
+    // reset wand to center to avoid off-screen trail after tab switch
+    if (!document.hidden) {
+      lastX = window.innerWidth/2; lastY = window.innerHeight/2;
+    }
+  });
+
+  // Fancy entrance shimmer on inputs/buttons
+  const sheen = (el) => {
+    const shine = el.animate([
+      { filter: 'brightness(1.2)' },
+      { filter: 'brightness(1.6)' },
+      { filter: 'brightness(1.2)' },
+    ], { duration: 800, easing: 'ease' });
+    return shine;
+  };
+  [cast, input].forEach(el => setTimeout(()=>sheen(el), 600));
+
+  // ======= Modal swirl burst =======
+  function swirlBurst() {
+    const center = modal.querySelector('.modal');
+    const rect = center.getBoundingClientRect();
+    const cx = rect.left + rect.width/2;
+    const cy = rect.top + rect.height/2;
+
+    // Create a ring of sparks rotating in
+    for (let i=0; i<36; i++){
+      const s = document.createElement('div');
+      s.className = 'spark';
+      const ang = (i/36) * Math.PI * 2;
+      const r = 180 + Math.random()*40;
+      s.style.left = (cx + Math.cos(ang)*r) + 'px';
+      s.style.top  = (cy + Math.sin(ang)*r) + 'px';
+      s.style.setProperty('--dx', (Math.cos(ang+Math.PI) * (r+40)) + 'px');
+      s.style.setProperty('--dy', (Math.sin(ang+Math.PI) * (r+40)) + 'px');
+      document.body.appendChild(s);
+      setTimeout(()=>s.remove(), 900);
+    }
+  }
+
+})();
+</script>
+</body>
+</html>
